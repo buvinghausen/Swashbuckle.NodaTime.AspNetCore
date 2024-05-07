@@ -48,6 +48,26 @@ _ = app
 	.UseRouting()
 	.UseAuthorization();
 _ = app.MapControllers();
+
+// Run the app
+var cts = new CancellationTokenSource();
+#if DEBUG // Only really need to process ctrl+c in debug mode
+var sigintReceived = false;
+Console.CancelKeyPress += (_, e) =>
+{
+	sigintReceived = true;
+	cts.Cancel();
+	e.Cancel = true;
+};
+#endif
+AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+{
+#if DEBUG
+	if (sigintReceived) return;
+#endif
+	cts.Cancel();
+};
+
 await app
-	.RunAsync()
+	.RunAsync(cts.Token)
 	.ConfigureAwait(false);
